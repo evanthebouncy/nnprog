@@ -12,14 +12,19 @@ import copy
 #              an array "ary"
 #              two pointrs "pt1", "pt2"
 #              program counter "pc"
-def gen_s0(a_len = 5, a_val = 5, max_pc = 4):
-  the_ary = [random.randint(1,a_val) for i in range(a_len)]
+def gen_s0(a_len = 5, a_val = 5, max_pc = 4, det=False):
+  def get_rand_perm(a_len):
+    ret = list(range(1,a_len+1))
+    if not det:
+      random.shuffle(ret)
+    return ret
+  the_ary = get_rand_perm(a_len)
   pc = [0 for i in range(max_pc)]
   pc[0] = 1
   pc = tuple(pc)
   return { "ary" : the_ary, 
            "pt1" : 0, 
-           "pt2" : 0, 
+           "pt2" : 0,
            "pc" : pc,
            "last" : "start"
          }
@@ -27,6 +32,10 @@ def gen_s0(a_len = 5, a_val = 5, max_pc = 4):
 def correct(s0, sn):
   return s0["ary"] == list(reversed(sn["ary"]))
 
+def stringify(state):
+  arr = [state[k] for k in sorted(state.keys())]
+  return str(arr)
+    
 # ............................................................................... actions
 # actions are commands that can change the state to the next state
 
@@ -109,7 +118,7 @@ Actions = [
 ]
 
 ActionsMap = {
-  "start" : "start",
+  "start" : lambda x: x,
   "pt1_plus" : pt1_plus,
   "pt2_plus" : pt2_plus,
   "pt1_minu" : pt1_minu,
@@ -119,7 +128,7 @@ ActionsMap = {
   "set_pc2" : set_pc2,
   "set_pc3" : set_pc3,
   "set_pc4" : set_pc4,
-  "end" : "end"
+  "end" : lambda x: x
 }
 
 # print set(ActionsMap.keys())
@@ -150,6 +159,16 @@ def pt1_pt2(s):
   return int(s["pt1"] >= s["pt2"])
 
 def abstract(s):
+  preds = (pt1_0(s),
+           pt2_0(s),
+           pt1_n(s),
+           pt2_n(s),
+           pt1_pt2(s))
+  last_moves = [0 for i in range(len(Actions))]
+  last_moves[Actions.index(s["last"])] = 1
+  return (preds, s["pc"], tuple(last_moves))
+
+def abstract_old(s):
   preds = (pt1_0(s),
            pt2_0(s),
            pt1_n(s),

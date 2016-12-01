@@ -1,7 +1,7 @@
 from env import *
 
 def human_policy(s):
-  abs_s = abstract(s)
+  abs_s = abstract_old(s)
   
   the_action = set()
 
