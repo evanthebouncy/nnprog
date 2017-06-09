@@ -1,5 +1,39 @@
 from ac_agent import *
 
+# testing...
+def testing_debug():
+  actor.det = True
+  s = gen_s0(bnd_r,bnd_r,2,det=True)
+  s_start = s
+  trace = run_star(s, actor, ActionsMap)
+  print "\n\n\n ##################################################### Trace"
+  for tr in trace:
+  # for tr in trace:
+    s,a,ss,r = tr
+    print "\n\n======================"
+    print "state ", s
+    print "abs state ", abstract(s)
+    print "action ", a
+    print "reward ", r
+
+    print "\nactor_q a", actor.Q[abstract(s), a]
+    print "responsible for learning this... "
+    if (abstract(s), a) in actor.responsible:
+      print actor.responsible[(abstract(s), a)]
+    print "all actions: "
+    for b in actor.actions:
+      print b, actor.Q[abstract(s),b]
+    print "\ncritic_q a", critic.Q[stringify(s),a]
+    print "all actions: "
+    for b in critic.actions:
+      print b, critic.Q[stringify(s),b]
+
+  print "visited these many distinct states (actor)"
+  print len(actor.Q)
+  print "visited these many distinct states (critic)"
+  print len(critic.Q)
+
+
 # takes an agent, runs it agains the interpreter, give a trace
 def run_star(s_start, agent, transition, show_step=False, bnd=20):
   s_final = list(reversed(s_start["ary"]))
@@ -31,42 +65,42 @@ def run_star(s_start, agent, transition, show_step=False, bnd=20):
 actor = Actor(Actions)    
 critic = Critic(Actions)
 
-bndd = 4
+bnd = 6
 
 lots_trace = []
 # trianing
-for bnd in range(bndd, bndd+1):
-  for i in range(100 * bnd * bnd * bnd):
-    print i
-    s = gen_s0(bnd,bnd,4,det=True)
-    trace = run_star(s, actor, ActionsMap)
-    lots_trace += trace
-    critic.learn(trace)
-    if i % 20 == 0:
-      actor.learn(lots_trace, critic)
-      lots_trace = []
+for i in range(1000000):
+  actor.det = False
+#  print i
+
+#  bnd_r = random.randint(2,bnd)
+  bnd_r = bnd
+  if bnd_r < 4:
+    bnd_r = random.randint(2,bnd)
+  s = gen_s0(bnd_r,bnd_r,2,det=True)
+  trace = run_star(s, actor, ActionsMap)
+  lots_trace += trace
+
+  critic.learn(trace)
+  if i % 100 == 19:
+    actor.learn(lots_trace, critic)
+    lots_trace = []
+
+  if i % 1000 == -1 % 1000:
+    try:
+      testing_debug()
+    except:
+      pass
       
 
-# testing...
-actor.det = True
-s = gen_s0(bnd,bnd,4,det=True)
-s_start = s
-trace = run_star(s, actor, ActionsMap)
-print "Trace"
-for tr in trace:
-  s,a,ss,r = tr
-  print "\n\n======================"
-  print "state ", s
-  print "abs state ", abstract(s)
-  print "action ", a
-  print "\nactor_q a", actor.Q[abstract(s), a]
-  print "all actions: "
-  for b in actor.actions:
-    print b, actor.Q[abstract(s),b]
-  print "\ncritic_q a", critic.Q[stringify(s),a]
-  print "all actions: "
-  for b in critic.actions:
-    print b, critic.Q[stringify(s),b]
-
-print "visited these many distinct states"
-print len(actor.Q)
+# print "unexplored actors"
+# for s,a in actor.Q:
+#   if actor.Q[(s,a)] == 0.0:
+#     print s, a, actor.Q[(s,a)]
+# 
+# print "unexplored critic"
+# for s,a in critic.Q:
+#   sss = eval(s)
+#   if a == "end" and sss[0] == [2,1]:
+#     print s, a, critic.Q[(s,a)]
+# 

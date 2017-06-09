@@ -1,6 +1,7 @@
 from env import *
 from util import *
 import numpy as np
+from collections import Counter
 
 # actor critic learning
 # critic: the usual TD-learning Q function critic
@@ -59,10 +60,12 @@ class Actor:
     self.Q = dict()
     self.actions = actions
     self.det = False
+    self.responsible = dict()
 
   # transform state from state to concret rep or abstr rep
   def state_xform(self, state):
     try:
+      # return stringify(state)
       return abstract(state)
     except:
       return state
@@ -92,6 +95,13 @@ class Actor:
       return self.get_move_det(state)
     actions, prob = self.get_move_prob(state)
     chosen_action = np.random.choice(actions, 1, p=prob)[0]
+    
+    # hack
+#    if state["last"] == "swp":
+#      return "pt2_minu"
+#    if state["last"] == "pt2_minu":
+#      return "pt1_plus"
+
     return chosen_action
 
   def get_move_det(self, state):
@@ -123,6 +133,13 @@ class Actor:
         if b != a:
           deriv_b = q_conc * (-a_p_dict[b]) * a_p_dict[a]
           self.Q[(s_abs,b)] += self.learn_rate * deriv_b
+
+      if q_conc > 0.0:
+        if (s_abs,a) not in self.responsible:
+          self.responsible[(s_abs,a)] = Counter()
+
+        self.responsible[(s_abs,a)][(stringify(s),a)] += 1
+
 
 
 

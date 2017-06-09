@@ -20,11 +20,10 @@ def gen_s0(a_len = 5, a_val = 5, max_pc = 4, det=False):
     return ret
   the_ary = get_rand_perm(a_len)
   pc = [0 for i in range(max_pc)]
-  pc[0] = 1
   pc = tuple(pc)
   return { "ary" : the_ary, 
            "pt1" : 0, 
-           "pt2" : 0,
+           "pt2" : a_len - 1,
            "pc" : pc,
            "last" : "start"
          }
@@ -78,29 +77,21 @@ def swp(s):
   ss["last"] = "swp"
   return ss
 
-# set the pc 
-def set_pc1(s):
-  ss = copy.deepcopy(s)
-  ss["pc"] = (1,0,0,0)
-  ss["last"] = "set_pc1"
-  return ss
+# set the pc
+def set_pc_i(i):
+  def set_pc(s):
+    ss = copy.deepcopy(s)
+    pcc = [0 for jj in range(len(ss["pc"]))]
+    pcc[i-1] = 1
+    ss["pc"] = tuple(pcc)
+    ss["last"] = "set_pc"+str(i)
+    return ss
+  return set_pc
+    
 
-def set_pc2(s):
+def set_start(s):
   ss = copy.deepcopy(s)
-  ss["pc"] = (0,1,0,0)
-  ss["last"] = "set_pc2"
-  return ss
-
-def set_pc3(s):
-  ss = copy.deepcopy(s)
-  ss["pc"] = (0,0,1,0)
-  ss["last"] = "set_pc3"
-  return ss
-
-def set_pc4(s):
-  ss = copy.deepcopy(s)
-  ss["pc"] = (0,0,0,1)
-  ss["last"] = "set_pc4"
+  ss["last"] = "start"
   return ss
 
 Actions = [
@@ -112,22 +103,22 @@ Actions = [
   "swp",
   "set_pc1",
   "set_pc2",
-  "set_pc3",
-  "set_pc4",
+#  "set_pc3",
+#  "set_pc4",
   "end"
 ]
 
 ActionsMap = {
-  "start" : lambda x: x,
+  "start" : set_start,
   "pt1_plus" : pt1_plus,
   "pt2_plus" : pt2_plus,
   "pt1_minu" : pt1_minu,
   "pt2_minu" : pt2_minu,
   "swp" : swp,
-  "set_pc1" : set_pc1,
-  "set_pc2" : set_pc2,
-  "set_pc3" : set_pc3,
-  "set_pc4" : set_pc4,
+  "set_pc1" : set_pc_i(1),
+  "set_pc2" : set_pc_i(2),
+#  "set_pc3" : set_pc3,
+#  "set_pc4" : set_pc4,
   "end" : lambda x: x
 }
 
@@ -158,12 +149,17 @@ def pt2_n(s):
 def pt1_pt2(s):
   return int(s["pt1"] >= s["pt2"])
 
+# pt2 >= pt1
+def pt2_pt1(s):
+  return int(s["pt2"] >= s["pt1"])
+
 def abstract(s):
   preds = (pt1_0(s),
            pt2_0(s),
            pt1_n(s),
            pt2_n(s),
-           pt1_pt2(s))
+           pt1_pt2(s),
+           pt2_pt1(s))
   last_moves = [0 for i in range(len(Actions))]
   last_moves[Actions.index(s["last"])] = 1
   return (preds, s["pc"], tuple(last_moves))
@@ -173,7 +169,8 @@ def abstract_old(s):
            pt2_0(s),
            pt1_n(s),
            pt2_n(s),
-           pt1_pt2(s))
+           pt1_pt2(s),
+           pt2_pt1(s))
   last_moves = [0 for i in range(len(Actions))]
   last_moves[Actions.index(s["last"])] = 1
   return (preds, s["pc"], tuple(last_moves))
