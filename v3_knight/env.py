@@ -1,4 +1,5 @@
 import numpy as np
+from numpy import array
 
 L = 6
 ACTIONS = ["UP", "LEFT", "RIGHT"]

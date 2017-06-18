@@ -3,6 +3,9 @@ import learning_agent
 import random
 from numpy import array
 
+def argmax(iterable):
+  return max(enumerate(iterable), key=lambda x: x[1])[0]
+
 class Dict(dict):
   def __setitem__(self, key, value):
     key = repr(key)
@@ -60,6 +63,18 @@ class TDLearn:
       td = (r + self.discount * best_future_v) - self.Q[(s,a)]
       self.Q[(s,a)] = self.learn_rate * td + self.Q[(s,a)]
 
+  def learn_with_critic(self, trace, critic):
+    for step in trace:
+      s,a,ss,r = step
+      ss_orig = ss
+      s, ss = self.xform(s), self.xform(ss)
+
+      # use the critic for the value for concrete ss
+      best_future_v = critic.get_best_v(ss_orig)
+
+      td = (r + self.discount * best_future_v) - self.Q[(s,a)]
+      self.Q[(s,a)] = self.learn_rate * td + self.Q[(s,a)]
+
 # take a concrete agent and refine it by average
 def avg_refine(agent_conc, abstract):
   newQ = Dict()
@@ -85,3 +100,72 @@ def avg_refine(agent_conc, abstract):
 
   return ctr_abst
   
+class AngelicLearn(TDLearn):
+  def __init__(self, actions):
+    TDLearn.__init__(self, actions, True)
+    self.to_abs = dict()
+
+  def xform(self, s):
+    if type(s) == type(""): return s
+    if abstract(s) in self.to_abs: return abstract(s)
+    return s
+
+  def get_best_v(self, s):
+    usual_v = TDLearn.get_best_v(self, s)
+    if self.xform(s) in list(self.to_abs.keys()):
+      # print s, self.xform(s), 
+      ret = self.Q[(self.xform(s), self.to_abs[self.xform(s)])]
+      # print ret
+      return ret
+    else:
+      return usual_v
+
+  def act(self, state):
+    usual_act = TDLearn.act(self, state)
+    if abstract(state) in self.to_abs:
+      return self.to_abs[abstract(state)]
+    else:
+      return usual_act
+
+def synthesize(abs_states, actions, angl_mkr, env):
+  policy = dict()
+  for a_state in abs_states:
+  
+    attempts = []
+    for action in actions:
+      attempt = dict()
+      for k in policy:
+        attempt[k] = policy[k]
+      attempt[a_state] = action
+      attempts.append(attempt)
+
+    agent_angls = []
+    for aaa in attempts:
+      agent_angl = angl_mkr(actions)
+      agent_angl.to_abs = aaa
+      agent_angls.append(agent_angl)
+
+    for i in range(2000):
+      s = env.gen_s()
+
+      for aa in agent_angls:
+        tr_angl = env.get_trace(aa, s=s)
+        aa.learn(tr_angl)
+
+    for aa in agent_angls:
+      aa.explore_rate = 0.0
+
+    counts = [0 for _ in range(len(agent_angls))]
+    for i in range(100):
+      s = env.gen_s()
+      for idd, aa in enumerate(agent_angls):
+        tr_angl = env.get_trace(aa, s=s)
+
+        if tr_angl[-1][-1] == 1.0:
+          counts[idd] += 1
+
+    best_attempt = attempts[argmax(counts)]
+    print best_attempt
+    policy = best_attempt
+
+  return policy 
