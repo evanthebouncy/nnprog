@@ -21,17 +21,18 @@ class Dict(dict):
 
 class TDLearn:
 
-  def __init__(self, actions, use_abs):
+  def __init__(self, env, use_abs):
+    self.env = env
     self.learn_rate = 0.1
     self.explore_rate = 0.1
     self.discount = 0.9
     self.Q = Dict()
-    self.actions = actions
+    self.actions = env.ACTIONS
     self.use_abs = use_abs
 
   def xform(self, s):
     if type(s) == type(""): return s
-    if self.use_abs: return abstract(s)
+    if self.use_abs: return self.env.abstract(s)
     return s
 
   def get_action_score_from_s(self, state):
@@ -101,13 +102,13 @@ def avg_refine(agent_conc, abstract):
   return ctr_abst
   
 class AngelicLearn(TDLearn):
-  def __init__(self, actions):
-    TDLearn.__init__(self, actions, True)
+  def __init__(self, env):
+    TDLearn.__init__(self, env, True)
     self.to_abs = dict()
 
   def xform(self, s):
     if type(s) == type(""): return s
-    if abstract(s) in self.to_abs: return abstract(s)
+    if self.env.abstract(s) in self.to_abs: return self.env.abstract(s)
     return s
 
   def get_best_v(self, s):
@@ -122,12 +123,13 @@ class AngelicLearn(TDLearn):
 
   def act(self, state):
     usual_act = TDLearn.act(self, state)
-    if abstract(state) in self.to_abs:
-      return self.to_abs[abstract(state)]
+    if self.env.abstract(state) in self.to_abs:
+      return self.to_abs[self.env.abstract(state)]
     else:
       return usual_act
 
-def synthesize(abs_states, actions, angl_mkr, env):
+def synthesize(env, angl_mkr):
+  abs_states, actions = env.STATES, env.ACTIONS
   policy = dict()
   for a_state in abs_states:
   
@@ -141,7 +143,7 @@ def synthesize(abs_states, actions, angl_mkr, env):
 
     agent_angls = []
     for aaa in attempts:
-      agent_angl = angl_mkr(actions)
+      agent_angl = angl_mkr(env)
       agent_angl.to_abs = aaa
       agent_angls.append(agent_angl)
 
@@ -165,7 +167,7 @@ def synthesize(abs_states, actions, angl_mkr, env):
           counts[idd] += 1
 
     best_attempt = attempts[argmax(counts)]
-    print best_attempt
+    print best_attempt, zip(attempts, counts)
     policy = best_attempt
 
   return policy 
