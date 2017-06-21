@@ -128,7 +128,7 @@ class AngelicLearn(TDLearn):
     else:
       return usual_act
 
-def synthesize(env, angl_mkr):
+def synthesize(env, angl_mkr, train_iter, test_iter):
   abs_states, actions = env.STATES, env.ACTIONS
   policy = dict()
   for a_state in abs_states:
@@ -147,7 +147,7 @@ def synthesize(env, angl_mkr):
       agent_angl.to_abs = aaa
       agent_angls.append(agent_angl)
 
-    for i in range(2000):
+    for i in range(train_iter):
       s = env.gen_s()
 
       for aa in agent_angls:
@@ -158,7 +158,7 @@ def synthesize(env, angl_mkr):
       aa.explore_rate = 0.0
 
     counts = [0 for _ in range(len(agent_angls))]
-    for i in range(100):
+    for i in range(test_iter):
       s = env.gen_s()
       for idd, aa in enumerate(agent_angls):
         tr_angl = env.get_trace(aa, s=s)
@@ -167,7 +167,7 @@ def synthesize(env, angl_mkr):
           counts[idd] += 1
 
     best_attempt = attempts[argmax(counts)]
-    print best_attempt, zip(attempts, counts)
+    print best_attempt, max(counts), zip(attempts, counts)
     policy = best_attempt
 
   return policy 

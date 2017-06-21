@@ -1,5 +1,6 @@
 import numpy as np
 from numpy import array
+import copy
 
 class Knight:
   L = 6
@@ -100,6 +101,90 @@ class Flag:
     ret += "1" if p1 == p2 else "0"
     ret += "1" if ary[p1] == 1 else "0"
     ret += "1" if ary[p2] == 1 else "0"
+    return ret
+
+# doubling the number in bit representation
+class BitDouble:
+  L = 5
+  # the four pointers are ptr1, carry, output
+  # the values of pointers can be 0 or 1
+  # pt1 and output are pointing at index 0 in beginning while carry points at index 1
+  # all pointers increments by 1 with the ++ command
+  # there is a program counter which always increases but can be reset
+  STATES = []
+  ACTIONS = ["++", "c0", "c1", "o0", "o1"]
+
+  def gen_s(self):
+    L = self.L
+    pt1, ptc, pto, PC = 0, 1, 0, 0
+    a1 = list(np.random.randint(0,2,size=L-1)) + [0]
+    ao = [0 for i in range(L)]
+    return pt1, ptc, pto, a1, ao, PC
+
+  def __init__(self):
+    for p1_content in ["0", "1"]:
+      for c_content in ["0", "1"]:
+        for o_content in ["0", "1"]:
+          for pc in ["0", "1"]:
+            self.STATES.append(p1_content+c_content+o_content+pc)
+
+
+  def goal(self, state):
+    pt1, ptc, pto, a1, ao, PC = state
+    def meow(aaa):
+      ret = ""
+      for a in aaa:
+        ret = str(a) + ret
+      return int(ret, 2)
+    return meow(a1) + meow(a1) == meow(ao)
+
+  def step(self, s, a):
+    pt1, ptc, pto, a1, ao, PC = copy.deepcopy(s)
+    if a == "++": return min(pt1 + 1, self.L - 1),\
+                         min(ptc + 1, self.L - 1),\
+                         min(pto + 1, self.L - 1), a1, ao, (PC+1) % 2
+    if a == "c0": 
+      ao[ptc] = 0
+      return pt1, ptc, pto, a1, ao, (PC+1) % 2
+    if a == "c1": 
+      ao[ptc] = 1
+      return pt1, ptc, pto, a1, ao, (PC+1) % 2
+    if a == "o0": 
+      ao[pto] = 0
+      return pt1, ptc, pto, a1, ao, (PC+1) % 2
+    if a == "o1": 
+      ao[pto] = 1
+      return pt1, ptc, pto, a1, ao, (PC+1) % 2
+ #   if a == "reset":
+ #     return pt1, ptc, pto, a1, ao, 0
+    assert 0
+
+  def get_trace(self, actor, s=None):
+    bound = self.L * 6
+    def stop(s):
+      pt1, ptc, pto, a1, ao, PC = copy.deepcopy(s)
+      return ptc == pto
+
+    trace = []
+    s = self.gen_s() if s == None else s
+    move_reward = -0.1
+    for i in range(bound):
+      action = actor.act(s)
+      ss = self.step(s, action)
+
+      reward = 1.0 if (stop(ss) and self.goal(ss)) else move_reward
+      trace.append((s,action,ss,reward))
+      if stop(ss): return trace
+      s = ss
+    return trace
+
+  def abstract(self, s):
+    pt1, ptc, pto, a1, ao, PC = copy.deepcopy(s)
+    ret = ""
+    ret += str(a1[pt1])
+    ret += str(ao[ptc])
+    ret += str(ao[pto])
+    ret += str(PC)
     return ret
 
 class RandomActor:

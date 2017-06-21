@@ -19,4 +19,15 @@ def run_flag():
   policy = learning_agent.synthesize(flag, learning_agent.AngelicLearn)
   print policy
 
-run_flag()
+# run_flag()
+
+def run_bitdouble():
+  bitdouble = env.BitDouble()
+  print bitdouble
+  print bitdouble.STATES
+  print bitdouble.ACTIONS
+  policy = learning_agent.synthesize(bitdouble, learning_agent.AngelicLearn, 
+                                     train_iter=5000, test_iter=500)
+  print policy
+
+run_bitdouble()
