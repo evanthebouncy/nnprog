@@ -8,15 +8,16 @@ def test_bitdouble():
   print bitdouble
   print bitdouble.STATES
   print bitdouble.ACTIONS
-  bitdouble.L = 10
+  bitdouble.L = 5
   agent_angl = learning_agent.AngelicLearn(bitdouble)
   agent_angl.to_abs = policy
 
   success = 0
-  for i in range(100):
+  for i in range(1):
     s = bitdouble.gen_s()
     tr_angl = bitdouble.get_trace(agent_angl, s=s)
-    print tr_angl
+    for ttt in tr_angl:
+      print ttt
     if tr_angl[-1][-1] == 1.0:
       success += 1
     print [x[1] for x in tr_angl]

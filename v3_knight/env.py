@@ -1,6 +1,28 @@
 import numpy as np
 from numpy import array
+from scipy.misc import imresize
 import copy
+from scipy.ndimage.filters import gaussian_filter
+
+
+from tensorflow.examples.tutorials.mnist import input_data
+mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
+
+def get_mnist_img(L, test=False):
+  for i in range(np.random.randint(1, 1000)):
+    img, _x = mnist.train.next_batch(1)
+    if test:
+      img, _x = mnist.test.next_batch(1)
+
+  img = np.reshape(img[0], [28,28])
+  # rescale the image to 14 x 14
+  # img = imresize(img, (20,20), interp='nearest') / 255.0
+  img = imresize(img, (L,L)) / 255.0
+  img = gaussian_filter(img, sigma=0.5)
+  thold = 0.2
+  img[img > thold] = 1
+  img[img < thold] = 0
+  return img, _x
 
 class Knight:
   L = 6
@@ -186,6 +208,93 @@ class BitDouble:
     ret += str(ao[pto])
     ret += str(PC)
     return ret
+
+class BugZero:
+
+  L = 16
+  STATES = []
+  ACTIONS = ["goto", "follow"]
+  
+  def gen_s(self):
+
+    L = self.L
+    ret = np.zeros([L, L]) 
+    for i in range(10):
+      img_l = max( L / 2 - i, 4)
+      # print img_l
+      digit = get_mnist_img(img_l)[0]
+      x_displace = np.random.randint(0,L - img_l)
+      y_displace = np.random.randint(0,L - img_l)
+      digit = np.lib.pad(digit, ((x_displace, L - img_l - x_displace), 
+                                 (y_displace, L - img_l - y_displace)), 'minimum')
+
+      ret = ret + digit
+    ret = np.clip(ret, 0, 1)
+
+    def to_edge(kk, ll):
+      if kk == 0: return (ll, 0)
+      if kk == 1: return (L-1, ll)
+      if kk == 2: return (ll, L-1)
+      if kk == 3: return (0, ll)
+      assert 0, "impossible!"
+
+    start = np.random.randint(0,4), np.random.randint(0,L)
+    end = (start[0] + 2) % 4, L - 1 - start[1]
+
+    return ret, to_edge(*start), to_edge(*end)
+
+  # actually BFS because fuck it LOL
+  def a_star_solution(self, s):
+    maze, start, end = s
+    L = self.L
+
+    def get_neighbor(pos):
+      px, py = pos
+      neib = [(px, min(py+1,L-1)), (px, max(py-1,0)), 
+              (max(px-1,0), py), (min(px+1,L-1), py)]
+
+      # note the matrix is stored in Y X, i.e. the outer index is Y
+      # thus we need to read the transposed version of it otherwise it's weird
+      filt_neib = [nn for nn in neib if maze[nn[1]][nn[0]] == 0]
+      
+      return filt_neib
+
+    fringe = [(0, start)]
+    seen = set()
+    back_ptr = dict()    
+
+    while len(fringe) > 0:
+
+      # print len(seen), len(fringe)
+      to_pop = min(fringe)
+      fringe.remove(to_pop)
+      
+      cur_cost, cur_node = to_pop
+      if cur_node == end: 
+        break
+      # add currently popped node to seen
+      seen.add(cur_node)
+      neib = get_neighbor(cur_node)
+      neib = [nn for nn in neib if nn not in seen]
+
+      for nn in neib: 
+        # print nn, seen, fringe
+        if nn not in seen:
+          back_ptr[nn] = cur_node
+          # TODO WARNING: THIS MIGHT BE STUPID LOL
+          tiny_cost = np.random.randint(0,10)
+          fringe.append((cur_cost + 1000 + tiny_cost, nn))
+      fringe = list(set(fringe))
+
+    ret = []
+    cur_track = end
+    while cur_track != start:
+      ret.append(cur_track)
+      cur_track = back_ptr[cur_track]
+    ret.append(cur_track)
+
+    return list(reversed(ret))
+    
 
 class RandomActor:
   def __init__(self, actions):

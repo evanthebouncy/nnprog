@@ -1,4 +1,5 @@
 from env import *
+from draw import *
 
 # print gen_s()
 # 
@@ -26,11 +27,18 @@ from env import *
 #   if tr[-1][-1] == 1.0:
 #     print tr
  
-bitdouble = BitDouble()
+# bitdouble = BitDouble()
+# 
+# r_actor = RandomActor(bitdouble.ACTIONS)
+# 
+# for i in range(2000):
+#   tr = bitdouble.get_trace(r_actor)
+#   if tr[-1][-1] == 1.0:
+#     print tr
 
-r_actor = RandomActor(bitdouble.ACTIONS)
+bugzero = BugZero()
+maze = bugzero.gen_s()
 
-for i in range(2000):
-  tr = bitdouble.get_trace(r_actor)
-  if tr[-1][-1] == 1.0:
-    print tr
+path = bugzero.a_star_solution(maze)
+draw(maze, "maze.png", path)
+
