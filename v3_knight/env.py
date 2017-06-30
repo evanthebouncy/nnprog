@@ -293,6 +293,8 @@ class BugZero:
       cur_track = back_ptr[cur_track]
     ret.append(cur_track)
 
+    assert len(ret) < 100, "YOUR SMALL NUMBER IS FUCKING U UP RIGHT NOW BOI"
+
     return list(reversed(ret))
     
 
