@@ -266,7 +266,7 @@ class BugZero:
     trace = []
     move_reward = -0.1
     for i in range(bound):
-      action = actor.act(s)
+      action = actor.act(s, self)
       ss = self.step(s, action)
 
       reward = 1.0 if self.goal(ss) else move_reward
@@ -281,7 +281,7 @@ class BugZero:
       def __init__(self, a_star_sol):
         self.sol = a_star_sol
         # print a_star_sol
-      def act(self, s):
+      def act(self, s, env):
         maze, start, end = s
         # print "cur state ", start
         start_idx = self.sol.index(start)
@@ -373,6 +373,18 @@ class BugZero:
     assert len(ret) < 100, "YOUR SMALL NUMBER IS FUCKING U UP RIGHT NOW BOI"
 
     return list(reversed(ret))
+
+  def vectorize_state(self, s):
+    maze, start, end = s
+    stacked = np.dstack( (maze, np.zeros((self.L,self.L)),
+                                np.zeros((self.L,self.L))) )
+    startx, starty = start
+    endx, endy = end
+    stacked[starty][startx][1] = 1
+    stacked[endy][endx][2] = 1
+
+    return stacked
+
     
 
 class RandomActor:
@@ -389,3 +401,23 @@ def print_Q(Q):
   for k in keys:
     print k, Q[eval(k)]
 
+
+class Experience:
+  
+  def __init__(self, buf_len):
+    self.buf = []
+    self.buf_len = buf_len
+
+  def trim(self):
+    while len(self.buf) > self.buf_len:
+      self.buf.pop()
+
+  def add(self, trace):
+    self.buf += trace
+    self.trim()
+  
+  def sample(self):
+    idxxs = np.random.choice(len(self.buf), size=1, replace=False)
+    return self.buf[idxxs[0]]
+
+  

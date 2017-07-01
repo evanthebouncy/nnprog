@@ -38,6 +38,8 @@ from draw import *
 
 bugzero = BugZero()
 maze = bugzero.gen_s()
+bugzero.vectorize_state(maze)
+assert 0
 
 path = bugzero.a_star_solution(maze)
 draw(maze, "maze.png", path)
