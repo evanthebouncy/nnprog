@@ -213,7 +213,7 @@ class BugZero:
 
   L = 16
   STATES = []
-  ACTIONS = ["goto", "follow"]
+  ACTIONS = ['R', 'U', 'L', 'D']
   
   def gen_s(self):
 
@@ -243,8 +243,76 @@ class BugZero:
 
     return ret, to_edge(*start), to_edge(*end)
 
+  def goal(self, state):
+    maze, start, end = state
+    return start == end
+
+  def step(self, s, a):
+    L = self.L
+    maze, start, end = s
+    px, py = start
+    if a == 'R': nxt = min(px + 1, L-1), py
+    if a == 'U': nxt = px, max(py-1, 0)
+    if a == 'L': nxt = max(px-1, 0), py
+    if a == 'D': nxt = px, min(py+1, L-1)
+
+    nx, ny = nxt
+    if maze[ny][nx] == 1: nxt = start
+    return maze, nxt, end
+ 
+  def get_trace(self, actor, s=None):
+    s = self.gen_s() if s == None else s
+    bound = self.L * 4
+    trace = []
+    move_reward = -0.1
+    for i in range(bound):
+      action = actor.act(s)
+      ss = self.step(s, action)
+
+      reward = 1.0 if self.goal(ss) else move_reward
+      trace.append((s,action,ss,reward))
+      if self.goal(ss): return trace
+      s = ss
+    return trace
+
+  def gen_a_star_actor(self, problem):
+    a_star_sol = self.a_star_solution(problem)
+    class AgentAStar:
+      def __init__(self, a_star_sol):
+        self.sol = a_star_sol
+        # print a_star_sol
+      def act(self, s):
+        maze, start, end = s
+        # print "cur state ", start
+        start_idx = self.sol.index(start)
+        nxt_idx = start_idx + 1
+        nxt = self.sol[nxt_idx]
+
+        nx, ny = nxt
+        sx, sy = start
+        if nx - sx == 1: 
+          # print " R "
+          return 'R'
+        if nx - sx == -1: 
+          # print " L "
+          return 'L'
+        if ny - sy == 1: 
+          # print " D "
+          return 'D'
+        if ny - sy == -1: 
+          # print " U "
+          return 'U' 
+    return AgentAStar(a_star_sol)
+
   # actually BFS because fuck it LOL
   def a_star_solution(self, s):
+
+    def heuristic_cost(aa, bb):
+      return 0
+#       xx,yy = aa  
+#       xxx, yyy = bb
+#       return abs(xxx-xx) + abs(yyy - yy)
+
     maze, start, end = s
     L = self.L
 
@@ -263,9 +331,13 @@ class BugZero:
     seen = set()
     back_ptr = dict()    
 
+    # keeps track of the minimum distance from node to start
+    min_dists = dict()
+
     while len(fringe) > 0:
 
       # print len(seen), len(fringe)
+      # print fringe
       to_pop = min(fringe)
       fringe.remove(to_pop)
       
@@ -278,12 +350,17 @@ class BugZero:
       neib = [nn for nn in neib if nn not in seen]
 
       for nn in neib: 
-        # print nn, seen, fringe
-        if nn not in seen:
-          back_ptr[nn] = cur_node
-          # TODO WARNING: THIS MIGHT BE STUPID LOL
-          tiny_cost = np.random.randint(0,10)
-          fringe.append((cur_cost + 1000 + tiny_cost, nn))
+        back_ptr[nn] = cur_node
+        # TODO WARNING: THIS MIGHT BE STUPID LOL (adding a small number)
+
+        # probabilistically add a "fixed" small cost per nn node
+        node_dist = cur_cost + 1000 + np.random.randint(0,10)
+        if nn in min_dists:
+          continue
+        else:
+          min_dists[nn] = node_dist
+
+        fringe.append((node_dist, nn))
       fringe = list(set(fringe))
 
     ret = []

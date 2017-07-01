@@ -42,3 +42,13 @@ maze = bugzero.gen_s()
 path = bugzero.a_star_solution(maze)
 draw(maze, "maze.png", path)
 
+# r_actor = RandomActor(bugzero.ACTIONS)
+
+ctr = 0
+for i in range(2000):
+  print i, ctr
+  maze = bugzero.gen_s()
+  r_actor = bugzero.gen_a_star_actor(maze)
+  tr = bugzero.get_trace(r_actor, maze)
+  if tr[-1][-1] == 1.0:
+    ctr += 1
