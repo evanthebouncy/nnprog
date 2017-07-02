@@ -211,9 +211,20 @@ class BitDouble:
 
 class BugZero:
 
-  L = 16
   STATES = []
   ACTIONS = ['R', 'U', 'L', 'D']
+
+  def __init__(self, L):
+    self.L = L
+
+  def valid_maze(self, s):
+    maze, start, end = s
+    if start == end: return False
+    sx, sy = start
+    ex, ey = end
+    if maze[sy][sx] == 1: return False
+    if maze[ey][ex] == 1: return False
+    return self.a_star_solution(s) != []
   
   def gen_s(self):
 
@@ -238,10 +249,14 @@ class BugZero:
       if kk == 3: return (0, ll)
       assert 0, "impossible!"
 
-    start = np.random.randint(0,4), np.random.randint(0,L)
-    end = (start[0] + 2) % 4, L - 1 - start[1]
+    # start = np.random.randint(0,4), np.random.randint(0,L)
+    # end = (start[0] + 2) % 4, L - 1 - start[1]
 
-    return ret, to_edge(*start), to_edge(*end)
+    # return ret, to_edge(*start), to_edge(*end)
+    toret = ret, (np.random.randint(0,L), np.random.randint(0,L)),\
+                 (np.random.randint(0,L), np.random.randint(0,L))
+    if self.valid_maze(toret): return toret
+    else: return self.gen_s() 
 
   def goal(self, state):
     maze, start, end = state
@@ -365,6 +380,10 @@ class BugZero:
 
     ret = []
     cur_track = end
+
+    if cur_track not in back_ptr:
+      return []
+
     while cur_track != start:
       ret.append(cur_track)
       cur_track = back_ptr[cur_track]

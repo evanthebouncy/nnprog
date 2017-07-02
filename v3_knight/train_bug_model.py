@@ -3,7 +3,9 @@ from draw import *
 from bug_model import *
 import random
 
-bugzero = BugZero()
+L = 10
+
+bugzero = BugZero(L)
 experience = Experience(2000)
 
 for i in range(20):
@@ -31,8 +33,8 @@ def gen_batch(experience, n):
 
   return np.array(targets), np.array(input_states)
 
-oracle = Oracle(16)
-oracle.restore_model("models/bug_oracle_model.ckpt")
+oracle = Oracle(L)
+# oracle.restore_model("models/bug_oracle_model.ckpt")
 
 
 

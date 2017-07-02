@@ -1,7 +1,8 @@
 from architecture import *
 import numpy as np
 
-architecture = architectures["v1_2D"]
+# 4 output channels, 2x2 kernel size, default stride of 1, and 8 times folded over 
+architecture = get_architecture(4, 2, 8)
 
 def flattenImageOutput(c1):
   c1d = int(c1.shape[1]*c1.shape[2]*c1.shape[3])
@@ -19,10 +20,13 @@ class Oracle:
     with self.session.graph.as_default():
       self.input_var = tf.placeholder(tf.float32, [None, L, L, 3])
       self.target_var = tf.placeholder(tf.int32, [None])
-      self.image_representation = architectures["v1_2D"].makeModel(self.input_var)
+      self.image_representation = architecture(self.input_var)
       print self.image_representation
       self.image_flat = flattenImageOutput(self.image_representation)
       print self.image_flat
+
+      self.image_flat = tf.nn.dropout(self.image_flat, 0.9)
+
       self.prediction = tf.layers.dense(self.image_flat, 4, activation = tf.nn.relu)
 
       self.pred_prob = tf.nn.softmax(self.prediction)
@@ -63,11 +67,14 @@ class Oracle:
     self.saver.restore(self.session, path)
     print "model restored  from ", path
 
+  # only supports 1 state at a time, no batching plz
   def act(self, state, env):
     vector_state = env.vectorize_state(state)
     feed_dict = self.generate_act_feed(np.array([vector_state]))
-    the_action = self.session.run([self.pred_prob], feed_dict)
-    return env.ACTIONS[np.argmax(the_action)]
+    the_action = self.session.run([self.pred_prob], feed_dict)[0][0]
+    print the_action
+    move_idx = np.random.choice([0,1,2,3], p=the_action)
+    return env.ACTIONS[move_idx]
     
 
 
