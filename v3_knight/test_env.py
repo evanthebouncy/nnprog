@@ -1,6 +1,8 @@
 from env import *
 from draw import *
 
+L = 6
+
 # print gen_s()
 # 
 # s0 = gen_s()
@@ -36,20 +38,21 @@ from draw import *
 #   if tr[-1][-1] == 1.0:
 #     print tr
 
-bugzero = BugZero()
+bugzero = BugZero(L)
 maze = bugzero.gen_s()
-bugzero.vectorize_state(maze)
+centered_maze = bugzero.centered_state(maze)
 
-path = bugzero.a_star_solution(maze)
-draw(maze, "maze.png", path)
+# path = bugzero.a_star_solution(maze)
+draw(maze, "maze.png")
+draw(centered_maze, "maze_center.png")
 
-# r_actor = RandomActor(bugzero.ACTIONS)
-
-ctr = 0
-for i in range(2000):
-  print i, ctr
-  maze = bugzero.gen_s()
-  r_actor = bugzero.gen_a_star_actor(maze)
-  tr = bugzero.get_trace(r_actor, maze)
-  if tr[-1][-1] == 1.0:
-    ctr += 1
+# # r_actor = RandomActor(bugzero.ACTIONS)
+# 
+# ctr = 0
+# for i in range(2000):
+#   print i, ctr
+#   maze = bugzero.gen_s()
+#   r_actor = bugzero.gen_a_star_actor(maze)
+#   tr = bugzero.get_trace(r_actor, maze)
+#   if tr[-1][-1] == 1.0:
+#     ctr += 1

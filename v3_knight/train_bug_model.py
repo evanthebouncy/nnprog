@@ -3,10 +3,10 @@ from draw import *
 from bug_model import *
 import random
 
-L = 10
+L = 16
 
 bugzero = BugZero(L)
-experience = Experience(2000)
+experience = Experience(10000)
 
 for i in range(20):
   maze = bugzero.gen_s()
@@ -25,7 +25,7 @@ def gen_batch(experience, n):
     tr = experience.sample()
     s,a,ss,r = tr
 
-    vect_state = bugzero.vectorize_state(s)
+    vect_state = bugzero.vectorize_state(bugzero.centered_state(s))
     action_num = bugzero.ACTIONS.index(a)
 
     targets.append(action_num)
@@ -48,12 +48,13 @@ for i in range(100000):
   batch = gen_batch(experience, 50)
   oracle.train_model(batch)
 
-  if i % 1000 == 0:
+  if i % 200 == 0:
     oracle.save_model("models/bug_oracle_model.ckpt")
 
     oracle.act(maze, env=bugzero)
     trace_oracle = bugzero.get_trace(oracle, maze)
     path = trace_to_path(trace_oracle)
+    print path
     draw(maze, "maze.png", path)
 
 

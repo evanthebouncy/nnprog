@@ -2,7 +2,7 @@ from architecture import *
 import numpy as np
 
 # 4 output channels, 2x2 kernel size, default stride of 1, and 8 times folded over 
-architecture = get_architecture(4, 2, 8)
+architecture = get_architecture(4, 8, 8)
 
 def flattenImageOutput(c1):
   c1d = int(c1.shape[1]*c1.shape[2]*c1.shape[3])
@@ -18,14 +18,20 @@ class Oracle:
     self.session = tf.Session(graph = self.graph)
   
     with self.session.graph.as_default():
-      self.input_var = tf.placeholder(tf.float32, [None, L, L, 3])
+      self.input_var = tf.placeholder(tf.float32, [None, 2*L+1, 2*L+1, 3])
       self.target_var = tf.placeholder(tf.int32, [None])
-      self.image_representation = architecture(self.input_var)
-      print self.image_representation
-      self.image_flat = flattenImageOutput(self.image_representation)
-      print self.image_flat
 
-      self.image_flat = tf.nn.dropout(self.image_flat, 0.9)
+#       print " input shape ", self.input_var
+#       self.image_representation = architecture(self.input_var)
+#       print self.image_representation
+#       self.image_flat = flattenImageOutput(self.image_representation)
+#       print " flat ", self.image_flat
+# 
+#       self.image_flat = tf.nn.dropout(self.image_flat, 0.9)
+
+      self.image_flat = tf.reshape(self.input_var, shape=[-1, (2 * L + 1) * (2 * L + 1) * 3])
+
+      self.image_flat = tf.layers.dense(self.image_flat, 100, activation= tf.nn.relu)
 
       self.prediction = tf.layers.dense(self.image_flat, 4, activation = tf.nn.relu)
 
@@ -69,7 +75,7 @@ class Oracle:
 
   # only supports 1 state at a time, no batching plz
   def act(self, state, env):
-    vector_state = env.vectorize_state(state)
+    vector_state = env.vectorize_state(env.centered_state(state))
     feed_dict = self.generate_act_feed(np.array([vector_state]))
     the_action = self.session.run([self.pred_prob], feed_dict)[0][0]
     print the_action

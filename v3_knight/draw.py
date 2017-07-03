@@ -22,7 +22,7 @@ def draw(maze, name, path=None):
 
 
   if path != None:
-    for node in path[1:len(path)-1]:
+    for node in path:
       nx, ny = node
       plt.scatter(x=[nx], y=[ny], c="b", s=40)
 

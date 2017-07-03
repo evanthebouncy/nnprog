@@ -395,14 +395,36 @@ class BugZero:
 
   def vectorize_state(self, s):
     maze, start, end = s
-    stacked = np.dstack( (maze, np.zeros((self.L,self.L)),
-                                np.zeros((self.L,self.L))) )
+
+    mazeL = maze.shape[0]
+
+    stacked = np.dstack( (maze, np.zeros((mazeL,mazeL)),
+                                np.zeros((mazeL,mazeL))) )
     startx, starty = start
     endx, endy = end
     stacked[starty][startx][1] = 1
     stacked[endy][endx][2] = 1
 
     return stacked
+
+  def centered_state(self, s):
+    L = self.L
+    maze, start, end = s
+
+    bigmaze=np.zeros((2*L+1,2*L+1),maze.dtype) 
+    x, y = start
+    ex, ey = end
+    bigmaze[L-y:2*L-y, L-x:2*L-x] = maze
+
+    return bigmaze, (L,L), (L+ex-x, L+ey-y)
+#    stacked = np.dstack( (maze, np.zeros((self.L,self.L)),
+#                                np.zeros((self.L,self.L))) )
+#    startx, starty = start
+#    endx, endy = end
+#    stacked[starty][startx][1] = 1
+#    stacked[endy][endx][2] = 1
+#
+#    return stacked
 
     
 
