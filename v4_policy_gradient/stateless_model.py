@@ -10,24 +10,26 @@ def get_discount_future_reward(trace):
     disc_rewards[t] = running_add
   return disc_rewards
 
-class Driver:
+class StatelessAgent:
 
-  def __init__(self, name="driver"):
+  def __init__(self, name, state_dim, action_dim):
     self.name = name
+    self.state_dim = state_dim
+    self.action_dim = action_dim
 
     self.graph = tf.Graph()
     self.session = tf.Session(graph = self.graph)
   
     with self.session.graph.as_default():
       # this is the input state
-      self.input_state = tf.placeholder(tf.float32, [None, 3])
+      self.input_state = tf.placeholder(tf.float32, [None, state_dim])
       # this is the roll-out-reward indexed by action on that particular state
       # used for training only
-      self.roll_out_reward = tf.placeholder(tf.float32, [None, 3])
+      self.roll_out_reward = tf.placeholder(tf.float32, [None, action_dim])
 
       # one layer of fc to predict the action
       self.image_flat = tf.layers.dense(self.input_state, 10, activation= tf.nn.relu)
-      self.prediction = tf.layers.dense(self.image_flat, 3)
+      self.prediction = tf.layers.dense(self.image_flat, action_dim)
       self.pred_prob = tf.nn.softmax(self.prediction)
 
       # set up the cost function for training
@@ -79,6 +81,6 @@ class Driver:
     inp[0][ab_state_id] = 1.0
     the_action = self.session.run([self.pred_prob], {self.input_state: inp})[0][0]
     print env.abstract(state), the_action, self.session.run([self.prediction], {self.input_state: inp})[0][0]
-    move_idx = np.random.choice([0,1,2], p=the_action)
+    move_idx = np.random.choice(range(self.action_dim), p=the_action)
     return self.name, env.ACTIONS[move_idx]
     

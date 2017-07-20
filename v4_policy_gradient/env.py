@@ -25,7 +25,7 @@ def get_mnist_img(L, test=False):
   return img, _x
 
 class Knight:
-  L = 6
+  L = 4
   STATES = ["U", "L", "R"]
   ACTIONS = ["UP", "LEFT", "RIGHT"]
 
@@ -47,7 +47,8 @@ class Knight:
     else: return ret
     
 
-  def step(self, s, a):
+  def step(self, s, name_a):
+    name, a = name_a
     if a == "UP": return s - np.array([1,2]) 
     if a == "LEFT": return s - np.array([-2,-1]) 
     if a == "RIGHT": return s - np.array([2,-1]) 
@@ -83,6 +84,16 @@ class Flag:
   STATES = ["000", "001", "010", "011", "100", "101", "110", "111"]
   ACTIONS = ["1++", "2--", "swp", "stop"]
 
+  def vectorize_abs_state(self, abs_state):
+    ret = np.array([0.0 for _ in range(len(self.STATES))])
+    ret[self.STATES.index(abs_state)] = 1.0
+    return ret
+
+  def vectorize_action(self, action):
+    ret = np.array([0.0 for _ in range(len(self.ACTIONS))])
+    ret[self.ACTIONS.index(action)] = 1.0
+    return ret
+
   def gen_s(self):
     L = self.L
     pt1, pt2 = 0, L-1
@@ -111,18 +122,18 @@ class Flag:
       return p1, p2, new_ary
     if a == "stop":
       return s
-    else: assert 0
+    assert 0
 
   def get_trace(self, actor, bound=12, s=None):
     trace = []
     s = self.gen_s() if s == None else s
-    move_reward = -0.1
+    move_reward = -0.001
     for i in range(bound):
-      action = actor.act(s)
+      agent_name, action = actor.act(s, self)
       ss = self.step(s, action)
 
       reward = 1.0 if (self.goal(ss) and action == "stop") else move_reward
-      trace.append((s,action,ss,reward))
+      trace.append((s,(agent_name, action),ss,reward))
       if action == "stop": return trace
       s = ss
     return trace
@@ -145,6 +156,16 @@ class BitDouble:
   # there is a program counter which always increases but can be reset
   STATES = []
   ACTIONS = ["++", "c0", "c1", "o0", "o1"]
+
+  def vectorize_abs_state(self, abs_state):
+    ret = np.array([0.0 for _ in range(len(self.STATES))])
+    ret[self.STATES.index(abs_state)] = 1.0
+    return ret
+
+  def vectorize_action(self, action):
+    ret = np.array([0.0 for _ in range(len(self.ACTIONS))])
+    ret[self.ACTIONS.index(action)] = 1.0
+    return ret
 
   def gen_s(self):
     L = self.L
@@ -199,13 +220,13 @@ class BitDouble:
 
     trace = []
     s = self.gen_s() if s == None else s
-    move_reward = -0.1
+    move_reward = -0.001
     for i in range(bound):
-      action = actor.act(s)
+      name, action = actor.act(s, self)
       ss = self.step(s, action)
 
       reward = 1.0 if (stop(ss) and self.goal(ss)) else move_reward
-      trace.append((s,action,ss,reward))
+      trace.append((s,(name, action),ss,reward))
       if stop(ss): return trace
       s = ss
     return trace
@@ -218,6 +239,60 @@ class BitDouble:
     ret += str(ao[pto])
     ret += str(PC)
     return ret
+
+class BitAdd:
+  L = 5
+
+  STATES = []
+  ACTIONS = ["1+", "2+", "c+", "o+", "c0", "c1", "o0", "01"]
+
+  def gen_s(self):
+    L = self.L
+    p1, p2, pc, po, PC = 0, 0, 0, 0, 0
+    a1 = list(np.random.randint(0,2,size=L-1)) + [0]
+    a2 = list(np.random.randint(0,2,size=L-1)) + [0]
+    ao = [0 for i in range(L)]
+    return p1, p2, pc, po, a1, a2, ao, PC
+
+  def goal(self, state):
+    p1, p2, pc, po, a1, a2, ao, PC = state
+    def meow(aaa):
+      ret = ""
+      for a in aaa:
+        ret = str(a) + ret
+      return int(ret, 2)
+    return meow(a1) + meow(a2) == meow(ao)
+
+  def step(self, s, a):
+    p1, p2, pc, po, a1, a2, ao, PC = copy.deepcopy(s)
+    if a == "1+": p1 = min(p1 + 1, self.L-1) 
+    if a == "2+": p2 = min(p2 + 1, self.L-1)
+    if a == "c+": pc = min(pc + 1, self.L-1)
+    if a == "o+": po = min(po + 1, self.L-1)
+    if a == "c0": ao[pc] = 0
+    if a == "c1": ao[pc] = 1
+    if a == "o0": ao[po] = 0
+    if a == "o1": ao[po] = 1
+    return p1, p2, pc, po, a1, a2, ao, (PC + 1) % 2
+
+  def get_trace(self, actor, s=None):
+    bound = self.L * 6
+    def stop(s):
+      pt1, ptc, pto, a1, ao, PC = copy.deepcopy(s)
+      return ptc == pto
+
+    trace = []
+    s = self.gen_s() if s == None else s
+    move_reward = -0.001
+    for i in range(bound):
+      name, action = actor.act(s, self)
+      ss = self.step(s, action)
+
+      reward = 1.0 if (stop(ss) and self.goal(ss)) else move_reward
+      trace.append((s,(name, action),ss,reward))
+      if stop(ss): return trace
+      s = ss
+    return trace
 
 class BugZero:
 
@@ -461,7 +536,7 @@ class Experience:
 
   def trim(self):
     while len(self.buf) > self.buf_len:
-      self.buf.pop()
+      self.buf.pop(0)
 
   def add(self, trace):
     self.buf.append( trace )
