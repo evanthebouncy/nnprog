@@ -1,15 +1,22 @@
 from env import *
 from draw import *
 
-L = 6
+bitadd = BitAdd()
+r_actor = RandomActor(bitadd.ACTIONS)
 
-knight = Knight()
-r_actor = RandomActor(knight.ACTIONS)
-
-for i in range(1000):
-  tr = knight.get_trace(r_actor)
+for i in range(2000):
+  tr = bitadd.get_trace(r_actor)
+  print bitadd.vectorize_state(tr[0][0])
   if tr[-1][-1] == 1.0:
     print tr
+
+# knight = Knight()
+# r_actor = RandomActor(knight.ACTIONS)
+# 
+# for i in range(1000):
+#   tr = knight.get_trace(r_actor)
+#   if tr[-1][-1] == 1.0:
+#     print tr
 
 # flag = Flag()
 # 

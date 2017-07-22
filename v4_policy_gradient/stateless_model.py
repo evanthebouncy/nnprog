@@ -12,13 +12,16 @@ def get_discount_future_reward(trace):
 
 class StatelessAgent:
 
-  def __init__(self, name, state_dim, action_dim):
+  inspect = False
+
+  def __init__(self, name, state_dim, action_dim, use_abst):
     self.name = name
     self.state_dim = state_dim
     self.action_dim = action_dim
 
     self.graph = tf.Graph()
     self.session = tf.Session(graph = self.graph)
+    self.use_abst = use_abst
   
     with self.session.graph.as_default():
       # this is the input state
@@ -28,7 +31,7 @@ class StatelessAgent:
       self.roll_out_reward = tf.placeholder(tf.float32, [None, action_dim])
 
       # one layer of fc to predict the action
-      self.image_flat = tf.layers.dense(self.input_state, 10, activation= tf.nn.relu)
+      self.image_flat = tf.layers.dense(self.input_state, 100, activation= tf.nn.relu)
       self.prediction = tf.layers.dense(self.image_flat, action_dim)
       self.pred_prob = tf.nn.softmax(self.prediction)
 
@@ -53,16 +56,22 @@ class StatelessAgent:
     self.saver.restore(self.session, path)
     print "model restored  from ", path
 
+  def xform(self, state, env):
+    if self.use_abst:
+      return env.vectorize_abs_state(env.abstract(state))
+    else:
+      return env.vectorize_state(state)
+
   def learn(self, trace_batch, env):
     batch_states = []
     batch_action_indexed_rewards = []
     for trace in trace_batch:
-      states = [env.abstract(tr[0]) for tr in trace]
+      states = [self.xform(tr[0],env) for tr in trace]
       actions = [tr[1] for tr in trace]
       disc_rewards = get_discount_future_reward(trace) 
       for s, name_a, r in zip(states, actions, disc_rewards):
         name, a = name_a
-        batch_states.append(env.vectorize_abs_state(s))
+        batch_states.append(s)
         batch_action_indexed_rewards.append(r * env.vectorize_action(a))
 
     if batch_states == []: return
@@ -76,11 +85,10 @@ class StatelessAgent:
 
   # only supports 1 state at a time, no batching plz
   def act(self, state, env):
-    ab_state_id = env.STATES.index(env.abstract(state))
-    inp = np.zeros([1, len(env.STATES)], np.float32)
-    inp[0][ab_state_id] = 1.0
+    xform_state = self.xform(state, env)
+    inp = np.array([xform_state])
     the_action = self.session.run([self.pred_prob], {self.input_state: inp})[0][0]
-    print env.abstract(state), the_action, self.session.run([self.prediction], {self.input_state: inp})[0][0]
+    if self.inspect: print env.abstract(state), the_action, self.session.run([self.prediction], {self.input_state: inp})[0][0]
     move_idx = np.random.choice(range(self.action_dim), p=the_action)
     return self.name, env.ACTIONS[move_idx]
     

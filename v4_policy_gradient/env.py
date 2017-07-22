@@ -241,10 +241,11 @@ class BitDouble:
     return ret
 
 class BitAdd:
-  L = 5
+  L = 4
+  PC_MAX = 2
 
   STATES = []
-  ACTIONS = ["1+", "2+", "c+", "o+", "c0", "c1", "o0", "01"]
+  ACTIONS = ["1+", "2+", "c+", "o+", "c0", "c1", "o0", "o1"]
 
   def gen_s(self):
     L = self.L
@@ -273,13 +274,13 @@ class BitAdd:
     if a == "c1": ao[pc] = 1
     if a == "o0": ao[po] = 0
     if a == "o1": ao[po] = 1
-    return p1, p2, pc, po, a1, a2, ao, (PC + 1) % 2
+    return p1, p2, pc, po, a1, a2, ao, (PC + 1) % self.PC_MAX
 
   def get_trace(self, actor, s=None):
     bound = self.L * 6
     def stop(s):
-      pt1, ptc, pto, a1, ao, PC = copy.deepcopy(s)
-      return ptc == pto
+      p1, p2, pc, po, a1, a2, ao, PC = copy.deepcopy(s)
+      return p1 == p2 == pc == po == self.L-1
 
     trace = []
     s = self.gen_s() if s == None else s
@@ -293,6 +294,35 @@ class BitAdd:
       if stop(ss): return trace
       s = ss
     return trace
+
+  def abstract(self, s):
+    p1, p2, pc, po, a1, a2, ao, PC = copy.deepcopy(s)
+    ret = [\
+    a1[p1],
+    a2[p2],
+    ao[pc],
+    ao[po]]
+    pc_bit = [0 for _ in range(self.PC_MAX)]
+    pc_bit[PC] = 1
+    return ret + pc_bit
+
+  def vectorize_abs_state(self, abs_state):
+    return abs_state
+
+  def vectorize_state(self, s):
+    p1, p2, pc, po, a1, a2, ao, PC = s
+    ptr_index = np.array([p1,p2,pc,po,PC])
+    b = np.zeros((5, self.L))
+    b[np.arange(5), ptr_index] = 1
+    b = np.reshape(b, [5 * self.L])
+    ret = np.concatenate([b, a1, a2, ao])
+    # print len(ret)
+    return ret
+
+  def vectorize_action(self, action):
+    ret = np.array([0.0 for _ in range(len(self.ACTIONS))])
+    ret[self.ACTIONS.index(action)] = 1.0
+    return ret
 
 class BugZero:
 
@@ -519,7 +549,7 @@ class RandomActor:
 
   def act(self, s, env):
     ret = self.actions[np.random.randint(len(self.actions))]
-    return ret
+    return ("rand", ret)
 
 def print_Q(Q):
   keys = sorted(list(Q.keys()))
@@ -541,6 +571,28 @@ class Experience:
   def add(self, trace):
     self.buf.append( trace )
     self.trim()
+
+  def add_success(self, trace):
+    if trace[-1][-1] == 1.0:
+      self.buf.append(trace)
+    
+
+  def add_balanced(self, trace):
+    #print self.check_success(), " before "
+    succ = trace[-1][-1] == 1.0
+    def find_first(value):
+      for idx, tr in enumerate(self.buf):
+        if tr[-1][-1] == value: return idx
+      assert 0
+
+    if succ: 
+      self.buf.pop(find_first(1.0))
+      self.buf.append(trace)
+
+    else:
+      self.buf.pop(find_first(-0.001))
+      self.buf.append(trace)
+    #print self.check_success(), " aftr "
   
   def sample(self):
     idxxs = np.random.choice(len(self.buf), size=1, replace=False)
@@ -548,4 +600,9 @@ class Experience:
 
   def n_sample(self, n):
     return [self.sample() for _ in range(n)]
+
+  def check_success(self):
+    if len(self.buf) == 0: return 0
+    # print self.buf[0][-1][-1]
+    return sum([1.0 for tr in self.buf if tr[-1][-1] == 1.0 ])
 
