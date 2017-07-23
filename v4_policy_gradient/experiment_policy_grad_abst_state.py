@@ -5,7 +5,7 @@ from stateless_model import *
 
 bitadd = BitAdd()
 # make a driver that doesn't use abstract state
-driver = StatelessAgent("driver", 32, len(bitadd.ACTIONS), False)
+driver = StatelessAgent("driver", 6, len(bitadd.ACTIONS), True)
 
 exp_size = 20
 
@@ -49,4 +49,5 @@ for i in xrange(1000000):
 #      print trr
 
   if i % 1000 == 0:
-    print "full state accuracy {0} at {1} ".format(get_accuracy(driver, bitadd), i)
+    print "abst state accuracy {0} at {1} ".format(get_accuracy(driver, bitadd), i)
+
