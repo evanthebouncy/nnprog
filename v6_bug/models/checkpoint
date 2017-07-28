@@ -1,0 +1,2 @@
+model_checkpoint_path: "bug_oracle_model.ckpt"
+all_model_checkpoint_paths: "bug_oracle_model.ckpt"
