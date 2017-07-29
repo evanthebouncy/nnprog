@@ -3,6 +3,7 @@ from numpy import array
 from scipy.misc import imresize
 import copy
 from scipy.ndimage.filters import gaussian_filter
+import random
 
 
 from tensorflow.examples.tutorials.mnist import input_data
@@ -327,7 +328,7 @@ class BitAdd:
 class BugZero:
 
   STATES = []
-  ACTIONS = ['R', 'U', 'L', 'D', 'f0', 'f1']
+  ACTIONS = ['R', 'U', 'L', 'D']
 
   def diff(self, pos1, pos2):
     return pos2[0] - pos1[0], pos2[1] - pos1[1]
@@ -380,6 +381,10 @@ class BugZero:
     maze, start, end, prev_path, call_state = state
     return start == end
 
+  def set_call_state(self, s, cal_st):
+    maze, start, end, prev_path, call_state = s
+    return maze, start, end, prev_path, cal_st
+
   def step(self, s, a):
     L = self.L
     maze, start, end, prev_path, call_state = s
@@ -388,28 +393,38 @@ class BugZero:
     if a == 'U': nxt = px, max(py-1, 0)
     if a == 'L': nxt = max(px-1, 0), py
     if a == 'D': nxt = px, min(py+1, L-1)
-    if a == 'f0': 
-      nxt = start
-      call_state = [1.0, 0.0]
-    if a == 'f1':
-      nxt = start
-      call_state = [0.0, 1.0]
+#     if a == 'flip': 
+#       nxt = start
+#       c0, c1 = call_state
+#       call_state = [1.0 - c0, 1.0 - c1]
 
     nx, ny = nxt
     if maze[ny][nx] == 1: nxt = start
     return maze, nxt, end, prev_path + [(start, a)], call_state
  
-  def get_trace(self, actor, s=None):
+  def get_trace(self, actor, s=None, switch=False):
     s = self.gen_s() if s == None else s
     bound = self.L * 4
     trace = []
     move_reward = -0.001
     for i in range(bound):
-      name, action = actor.act(s)
+      name, action, blue_pain = actor.act(s)
+
+      maze, start, end, prev_path, call_state = s
+
+      # get out of jail card ! ! !
+      # if blue_pain[0] > 0.8:
+      #   action = random.choice(['R','U','L','D'])
+
       ss = self.step(s, action)
 
+      if switch and blue_pain[0] > 0.8:
+        ss = self.set_call_state(ss, [0.0, 1.0]) 
+      if switch and blue_pain[0] <= 0.8:
+        ss = self.set_call_state(ss, [1.0, 0.0]) 
+
       reward = 1.0 if self.goal(ss) else move_reward
-      trace.append((s,(name,action),ss,reward))
+      trace.append((s,(name,action, blue_pain),ss,reward))
       if self.goal(ss): return trace
       s = ss
     return trace
@@ -418,7 +433,7 @@ class BugZero:
     return [tr[0][1] for tr in trace]
 
   def trace_to_action_path(self, trace):
-    return [tr[1] for tr in trace]
+    return [(tr[1][0], tr[1][1], tr[1][2][0]) for tr in trace]
 
   def gen_a_star_actor(self, problem):
     a_star_sol = self.a_star_solution(problem)
@@ -638,17 +653,17 @@ class Experience:
   def add_balanced(self, trace):
     #print self.check_success(), " before "
     succ = trace[-1][-1] == 1.0
-    def find_first(value):
+    def find_first(values):
       for idx, tr in enumerate(self.buf):
-        if tr[-1][-1] == value: return idx
+        if tr[-1][-1] in values: return idx
       assert 0
 
     if succ: 
-      self.buf.pop(find_first(1.0))
+      self.buf.pop(find_first([1.0]))
       self.buf.append(trace)
 
     else:
-      self.buf.pop(find_first(-0.001))
+      self.buf.pop(find_first([-0.001, -0.002]))
       self.buf.append(trace)
     #print self.check_success(), " aftr "
   

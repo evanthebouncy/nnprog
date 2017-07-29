@@ -22,19 +22,16 @@ def draw(maze, name, path=None, action_path=None):
 
 
   if path != None:
-    colr = "b"
-    dsp = 0.0
+    colr = ["b", "m"]
+    dsp = [-0.1, 0.1]
+    flip_idx = 0
     for idx, node in enumerate(path):
       nx, ny = node
       if action_path != None:
-        nname, aa = action_path[idx]
-        if aa == 'f0': 
-          colr = 'b'
-          dsp = -0.1
-        if aa == 'f1': 
-          colr = 'm'
-          dsp = 0.1
-      plt.scatter(x=[nx+dsp], y=[ny], c=colr, s=40)
+        nname, aa, pain = action_path[idx]
+        if nname == "blu": flip_idx = 0
+        if nname == "meg": flip_idx = 1
+      plt.scatter(x=[nx+dsp[flip_idx]], y=[ny], c=colr[flip_idx], s=40)
 
   # draw in the start and end last so the blue path don't hide them
   grn_x, grn_y, = start
