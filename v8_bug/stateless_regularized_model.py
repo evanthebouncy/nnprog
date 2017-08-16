@@ -112,7 +112,7 @@ class StatelessAgentReg:
     batch_states = np.array(states)
     batch_other_states = np.array(other_states)
 
-    self.session.run([self.reg_train], {self.input_state: batch_states,
+    self.session.run([self.reg_cost, self.reg_train], {self.input_state: batch_states,
                                   self.input_state_other: batch_other_states})
 
   # only supports 1 state at a time, no batching plz
