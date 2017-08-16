@@ -125,11 +125,9 @@ class StatelessAgent:
     if self.inspect: print env.abstract(state), the_action, self.session.run([self.prediction], {self.input_state: inp})[0][0]
     move_idx = np.random.choice(range(self.action_dim), p=the_action)
 
-    xform_state_fake = self.xform(state, [1.0, 0.0])
+    xform_state_fake = self.xform(state)
     inp_fake = np.array([xform_state_fake])
     blue_pain = self.session.run([self.pain_prob], {self.input_state: inp_fake})[0][0]
 
-    if call_st == [0.0, 1.0]: namee = "meg"
-    if call_st == [1.0, 0.0]: namee = "blu"
-    return namee, self.actions[move_idx], blue_pain
+    return "bug", self.actions[move_idx], blue_pain
     

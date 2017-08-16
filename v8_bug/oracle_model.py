@@ -1,11 +1,14 @@
 import numpy as np
 import tensorflow as tf
+from architecture import *
 
 def flattenImageOutput(c1):
   c1d = int(c1.shape[1]*c1.shape[2]*c1.shape[3])
   print "fully connected input dimensionality:",c1d
   f1 = tf.reshape(c1, [-1, c1d])
   return f1
+
+# cnn_layer = get_architecture(4,8,8)
 
 class Oracle:
 
@@ -15,14 +18,18 @@ class Oracle:
     self.session = tf.Session(graph = self.graph)
     self.xform = xform
     self.actions = actions
+    self.name = "oracle"
   
     with self.session.graph.as_default():
       self.input_var = tf.placeholder(tf.float32, [None, 2*L+1, 2*L+1, 3])
       self.target_var = tf.placeholder(tf.int32, [None])
 
       self.image_flat = tf.reshape(self.input_var, shape=[-1, (2 * L + 1) * (2 * L + 1) * 3])
+      # self.image_flat = flattenImageOutput(cnn_layer(self.input_var))
+      # assert 0
 
-      self.image_flat = tf.layers.dense(self.image_flat, 1000, activation= tf.nn.relu)
+      self.image_flat = tf.layers.dense(self.image_flat, 200, activation= tf.nn.relu)
+      self.image_flat = tf.layers.dense(self.image_flat, 200, activation= tf.nn.relu)
 
       # add a dropout to regularize
       self.image_flat = tf.layers.dropout(self.image_flat, rate=0.1)
@@ -74,5 +81,5 @@ class Oracle:
     the_action = self.session.run([self.pred_prob], feed_dict)[0][0]
     # print the_action
     move_idx = np.random.choice([0,1,2,3], p=the_action)
-    return "oracle", self.actions[move_idx], 0.0
+    return self.name, self.actions[move_idx], 0.0
     

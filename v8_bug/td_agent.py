@@ -92,32 +92,25 @@ def contraction(trace, agent_name):
 
 class TandemAgent:
 
-  def __init__(self, agent_oracle, agent_student, split_cond):
+  def __init__(self, agent_oracle, agent_student, decay_rate):
     self.agent_oracle = agent_oracle
     self.agent_student = agent_student
     self.prob = 0.5
-    self.abst = []
-
-    assert split_cond in ["prob", "abst"]
-    self.split_cond = split_cond
 
   def set_prob(self, p):
     self.prob = p
 
-  def set_abst(self, abst):
-    self.abst = abst
 
-  def split(self, state, env):
-    if self.split_cond == "abst": return env.abstract(state) in self.abst
-    if self.split_cond == "prob": return np.random.random() > self.prob
+  def split(self, state):
+    return np.random.random() > self.prob
 
   def act(self, state, env):
     if self.split(state, env):
-      return self.agent_student.act(state, env)
+      return self.agent_student.act(state)
     else:
-      return self.agent_oracle.act(state, env)
+      return self.agent_oracle.act(state)
 
-  def learn(self, traces, env):
+  def learn(self, traces):
     name_oracle = self.agent_oracle.name
     name_student = self.agent_student.name
 
@@ -134,12 +127,5 @@ class TandemAgent:
     # print player_student_traces[0]
     self.agent_oracle.learn(player_oracle_traces, env)
     self.agent_student.learn(player_student_traces, env)
-
-
-
-
-      
-
-
 
 

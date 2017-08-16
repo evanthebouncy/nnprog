@@ -3,6 +3,7 @@ from draw import *
 from td_agent import *
 from oracle_model import *
 from stateless_model import *
+import pickle
 import sys
 
 # set supervision to true or false
@@ -15,7 +16,7 @@ else:
 
 L = 16
 bugzero_train = BugZero(L)
-bugzero_test = BugZero(2*L)
+test_mazes = pickle.load(open("test_datas/mazes.p","rb"))
 
 # =============== LOAD IN THE ORACLE ===============
 def oracle_xform(state):
@@ -26,20 +27,27 @@ oracle = Oracle(L, oracle_xform, bugzero_train.ACTIONS)
 oracle.restore_model("models/bug_oracle_model.ckpt")
 print "oracle accuracy ", get_accuracy(oracle, bugzero_train, 100)
 
-
 # ================ TRAIN THE AGENT ================
 
-def agent_xform(s, fake_call_state = None):
-  maze, start, end, path, call_state = s
+def agent_xform(s):
+  maze, start, end, path, info = s
+  if len(path) == 0:
+    last_step = np.array([0.0, 0.0])
+  else:
+    last = path[-1]
+    last_pos, last_move = last
+    last_step = np.array(bugzero_train.diff(start, last_pos))
     
   center_state = bugzero_train.centered_state(s)
   glimpse = bugzero_train.get_glimpse(center_state, 1)
   scent = bugzero_train.get_scent(center_state, 1)
 # use this to remove scent
 #  scent = np.zeros(shape=[3,3])
-  goal_dir = bugzero_train.get_goal_direction(center_state)
+  goal_dir  = bugzero_train.get_goal_direction(center_state)
+  start_dir = bugzero_train.get_start_direction(center_state)
   joint_state = np.concatenate([np.reshape(glimpse, [glimpse.size]), 
-                                np.reshape(scent,   [scent.size]), goal_dir, np.array(call_state)])
+                                np.reshape(scent,   [scent.size]), 
+                                goal_dir, start_dir])
   return joint_state
 
 def agent_xform_action(a):
@@ -80,6 +88,6 @@ for i in xrange(10000):
     draw(maze, "maze.png", path, action_path)
 
   if i % 2000 == 1999:
-    print "accuracy ", get_accuracy(bug, bugzero_test, 1000)
+    print "accuracy ", get_accuracy_from_set(bug, bugzero_train, test_mazes)
     bug.save_model("models/bug_bug_model.ckpt")
 

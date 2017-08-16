@@ -41,7 +41,7 @@ def gen_batch(experience, n):
 oracle = Oracle(L, xform, bugzero.ACTIONS)
 # oracle.restore_model("models/bug_oracle_model.ckpt")
 
-for i in range(50000):
+for i in range(500000):
 
   maze = bugzero.gen_s()
   r_actor = bugzero.gen_a_star_actor(maze)
@@ -60,7 +60,7 @@ for i in range(50000):
     print path
     draw(maze, "maze.png", path)
 
-  if i % 2000 == 1999:
+  if i % 10000 == 9999:
     print "accuracy ", get_accuracy(oracle, bugzero, 1000)
 
 print "finished training, measuring accuracy "
