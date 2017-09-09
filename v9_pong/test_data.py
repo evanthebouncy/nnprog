@@ -2,7 +2,7 @@ import pickle
 import gym
 import gym.envs.atari
 import random
-env = gym.envs.atari.atari_env.AtariEnv(obs_type='image', frameskip=3)
+env = gym.envs.atari.atari_env.AtariEnv(obs_type='image', frameskip=2)
 train_data = pickle.load(open("datas/train_pong.p","rb"))
 
 env.reset()
@@ -17,6 +17,4 @@ for aa in best_as:
   obs, reward, done, info = env.step(aa)
   print reward
   env.render()
-        
 
-print env.reset()
