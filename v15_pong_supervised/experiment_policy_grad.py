@@ -90,8 +90,8 @@ def xform_full(state):
     together_with_prev = np.concatenate([together_flat, prev_a])
     return together_with_prev
 
-xform = xform_extreme
-state_dim, action_dim = 3, 2
+xform = xform_full
+state_dim, action_dim = 6400*2+2, 2
 actions = [2, 3]
 
 
@@ -99,7 +99,7 @@ def xform_action(a):
   if a == 2: return np.array([1.0, 0.0])
   if a == 3: return np.array([0.0, 1.0])
 
-stateless_agent = StatelessAgent("bob", state_dim, action_dim, xform, xform_action, actions, learning_rate = 0.01, num_hidden=10)
+stateless_agent = StatelessAgent("bob", state_dim, action_dim, xform, xform_action, actions, learning_rate = 0.001, num_hidden=500)
 
 ctr = 0
 times_explore = 1
@@ -108,10 +108,12 @@ while True:
   print ctr
   
   do_render = True if ctr % 10 == 0 else False
+  if ctr % 100 == 0:
+    stateless_agent.save_model("./models/xform_full_500hidden.ckpt")
 
-#   if ctr % 10 == 0:
-#     planner_sa = [sample_planner_sa()]
-#     stateless_agent.learn_supervised(planner_sa)
+  if random.random() < 10.0 / ctr:
+    planner_sa = [sample_planner_sa()]
+    stateless_agent.learn_supervised(planner_sa)
   
 
   # test the agent

@@ -1,0 +1,2 @@
+model_checkpoint_path: "xform_full_500hidden.ckpt"
+all_model_checkpoint_paths: "xform_full_500hidden.ckpt"

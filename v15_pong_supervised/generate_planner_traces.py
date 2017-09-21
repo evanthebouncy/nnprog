@@ -11,7 +11,7 @@ def get_future_projection(start_state):
   env_plan = gym.envs.atari.atari_env.AtariEnv(obs_type='image', frameskip=2)
   env_plan.reset()
   env_plan.restore_full_state(start_state)
-  for i in range(15):
+  for i in range(10):
     obs, reward, done, info = env_plan.step(2)
     paddle = get_our_paddle(obs)
     ball = get_ball(obs)
@@ -23,9 +23,12 @@ def get_future_projection(start_state):
   print "paddle x ", paddle_x
   trejectory = [(abs(ball_pos[0] - paddle_x), ball_pos[0] - paddle_x, ball_pos)\
                 for ball_pos in trejectory]
+
+  all_ball_dist_pos = []
   curr_dist = 9999
   for idx, tr in enumerate(trejectory):
     dist, ball_paddle_diff, ball_pos = tr
+    all_ball_dist_pos.append((dist, ball_pos))
     if dist > curr_dist:
       _blah1, _blah2, prev_ball_pos = trejectory[idx-1]
       print "about to return something ", prev_ball_pos, ball_pos
@@ -37,7 +40,9 @@ def get_future_projection(start_state):
   # print trejectory
   # # assert 0, "should never happen"
   # print " .................................................. shouldnt be here . . ."
-  return 40
+  if all_ball_dist_pos == []: return paddle[1]
+  print all_ball_dist_pos
+  return min(all_ball_dist_pos, key=lambda x: x[0])[1][1]
 
 def act(state, ob_curr, ob_prev, prev_action):
 #  obs, reward, done, info = env.step(0)
@@ -51,7 +56,7 @@ def act(state, ob_curr, ob_prev, prev_action):
   paddle = get_our_paddle(ob_curr)
   
   if (prev_ball is None or curr_ball is None or paddle is None) or\
-      prev_ball[0] > curr_ball[0] or curr_ball[0] < 55 or curr_ball[0] > 75: 
+      prev_ball[0] > curr_ball[0]:
     target = paddle[1]
   else:
     future_ball_y = get_future_projection(state)
